@@ -1,0 +1,6 @@
+<c:if test="${not empty flash}">
+  <div class="flash ${flashType == 'error' ? 'error' : 'success'}">
+    <div><c:out value="${flash}"/></div>
+    <button type="button">✕</button>
+  </div>
+</c:if>

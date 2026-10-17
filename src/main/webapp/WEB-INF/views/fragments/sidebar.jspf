@@ -1,0 +1,10 @@
+<aside class="side">
+  <div class="logo"><span>🛡️</span><div>Digital<br>Steganography</div></div>
+
+  <a class="nav ${active == 'dashboard' ? 'active' : ''}" href="${pageContext.request.contextPath}/dashboard">▦ Dashboard</a>
+  <a class="nav ${active == 'embed' ? 'active' : ''}" href="${pageContext.request.contextPath}/embed">✎ Embed Message</a>
+  <a class="nav ${active == 'extract' ? 'active' : ''}" href="${pageContext.request.contextPath}/extract">▤ Extract Message</a>
+  <a class="nav ${active == 'history' ? 'active' : ''}" href="${pageContext.request.contextPath}/history">⏱ History</a>
+
+  <a class="nav logout" href="${pageContext.request.contextPath}/logout">⇦ Logout</a>
+</aside>
