@@ -1,0 +1,24 @@
+package com.stego.common.model;
+
+/** A registered user. M1 only uses getId() and getUsername(). */
+public class User {
+    private final int id;
+    private final String username;
+    private final String fullName;
+    private final String email;
+    private final String passwordHash;
+
+    public User(int id, String username, String fullName, String email, String passwordHash) {
+        this.id = id;
+        this.username = username;
+        this.fullName = fullName;
+        this.email = email;
+        this.passwordHash = passwordHash;
+    }
+
+    public int getId() { return id; }
+    public String getUsername() { return username; }
+    public String getFullName() { return fullName; }
+    public String getEmail() { return email; }
+    public String getPasswordHash() { return passwordHash; }
+}
