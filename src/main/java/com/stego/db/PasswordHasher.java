@@ -25,7 +25,7 @@ public final class PasswordHasher {
         byte[] salt = new byte[SALT_LENGTH];
         new SecureRandom().nextBytes(salt);
 
-        byte[] hash = derive(password.toCharArray(), salt);
+        byte[] hash = derive(password, salt);
 
         return ITERATIONS + ":"
                 + Base64.getEncoder().encodeToString(salt) + ":"
