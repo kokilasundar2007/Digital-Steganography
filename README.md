@@ -2,7 +2,8 @@
 Java Digital Steganography Project
 # Digital Steganography
 
-A Java web application that hides an encrypted secret message inside an image (LSB steganography + AES-GCM) and extracts it again. Runs on Apache Tomcat 9.
+A Java web application that hides an encrypted secret message inside an image (LSB steganography + AES-GCM) and extracts it again. Runs on Apache Tomcat 10.1
+.
 
 ## Features
 - User registration and login (hashed passwords, login-attempt limit)
