@@ -7,7 +7,9 @@ import com.stego.common.StegoEngine;
 import com.stego.common.exception.TamperedDataException;
 import com.stego.common.model.Payload;
 
-import java.nio.charset.StandardCharsets;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import javax.imageio.ImageIO;
 
 /**
  * Extraction pipeline. (M3)
@@ -33,16 +35,24 @@ public class ExtractionServiceImpl implements ExtractionService {
         if (password == null || password.isEmpty()) {
             throw new IllegalArgumentException("Password is required");
         }
+        BufferedImage bufferedImage = ImageIO.read(
+    new ByteArrayInputStream(image)
+);
+
+if (bufferedImage == null) {
+    throw new IllegalArgumentException("Invalid image format");
+}
+
+
 
         byte[] framed;
         try {
-            framed = engine.extract(image);                  // 1. read LSBs
+            framed = engine.extract(bufferedImage);                  // 1. read LSBs
         } catch (RuntimeException e) {                       // garbage length bytes etc.
             throw new TamperedDataException("No valid hidden data found in this image.");
         }
 
-        Payload payload = codec.decode(framed);              // 2. check magic + length
-        byte[] plain = crypto.decrypt(payload.getData(), password); // 3. verify + decrypt
-        return new String(plain, StandardCharsets.UTF_8);
+        Payload payload = codec.decode(framed);              
+        return crypto.decrypt(payload,password);
     }
 }
