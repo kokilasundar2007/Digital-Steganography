@@ -1,9 +1,15 @@
 package com.stego.app;
 
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.annotation.WebListener;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
+import jakarta.servlet.annotation.WebListener;
 
+/**
+ * Runs once when Tomcat starts the app. Builds all services and stores them
+ * in the ServletContext under the name "services" (every M1 servlet reads it):
+ *
+ *   ServiceFactory f = (ServiceFactory) getServletContext().getAttribute("services");
+ */
 @WebListener
 public class AppContextListener implements ServletContextListener {
 
