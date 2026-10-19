@@ -17,7 +17,7 @@ Encryption protects the content of a message but shows that a secret exists. Ste
 Existing tools usually hide data without encryption, or encrypt without hiding. The proposed system does both, adds authentication, and keeps a history.
 
 ## 5. System requirements
-**Software:** JDK 11+, Maven, Tomcat 9, MySQL 8, a web browser.
+**Software:** JDK 11+, Maven, Tomcat 10.1, MySQL 8, a web browser.
 **Hardware:** any computer able to run the above (4 GB RAM recommended).
 
 ## 6. System design
