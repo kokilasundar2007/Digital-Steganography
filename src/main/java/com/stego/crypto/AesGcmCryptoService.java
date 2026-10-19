@@ -1,6 +1,8 @@
 package com.stego.crypto;
 
 import com.stego.common.CryptoService;
+
+import com.stego.common.model.Payload;
 import com.stego.common.exception.TamperedDataException;
 
 import javax.crypto.AEADBadTagException;
@@ -8,6 +10,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 
@@ -27,10 +30,11 @@ public class AesGcmCryptoService implements CryptoService {
     private final SecureRandom random = new SecureRandom();
 
     @Override
-    public byte[] encrypt(byte[] plaintext, String password) throws Exception {
+    public Payload encrypt(String  plaintext, String password) throws Exception {
         if (plaintext == null) throw new IllegalArgumentException("Message is required");
         requirePassword(password);
 
+        byte[]plaintext=plainText.getBytes(StrandardCharsets.UTF_8);
         byte[] salt = KeyDerivation.generateSalt();
         byte[] iv = new byte[IV_LENGTH];
         random.nextBytes(iv);                       // never reuse an IV with the same key
@@ -47,12 +51,13 @@ public class AesGcmCryptoService implements CryptoService {
     }
 
     @Override
-    public byte[] decrypt(byte[] blob, String password) throws TamperedDataException {
+    public String decrypt(Payload payload, String password) throws TamperedDataException {
         requirePassword(password);
         if (blob == null || blob.length < HEADER_LENGTH + TAG_BYTES) {
             throw new TamperedDataException("Hidden data is corrupted or incomplete.");
         }
 
+        byte[] blob=payload.getData();
         ByteBuffer buf = ByteBuffer.wrap(blob);
         byte version = buf.get();
         if (version != VERSION) {
