@@ -1,6 +1,7 @@
 package com.stego.crypto;
 
 import com.stego.common.CryptoService;
+import com.stego.common.exception.TamperedDataException;
 import com.stego.common.model.Payload;
 
 import javax.crypto.Cipher;
@@ -19,12 +20,7 @@ public class AesGcmCryptoService implements CryptoService {
 
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
 
-    private final KeyDerivation keyDerivation;
     private final SecureRandom random = new SecureRandom();
-
-    public AesGcmCryptoService(KeyDerivation keyDerivation) {
-        this.keyDerivation = keyDerivation;
-    }
 
     @Override
     public Payload encrypt(String plainText, String password)
@@ -35,7 +31,7 @@ public class AesGcmCryptoService implements CryptoService {
         random.nextBytes(salt);
         random.nextBytes(iv);
 
-        SecretKey key = keyDerivation.deriveKey(password.toCharArray(), salt);
+        SecretKey key = KeyDerivation.deriveKey(password, salt);
 
         Cipher cipher = Cipher.getInstance(TRANSFORMATION);
         cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));
@@ -46,32 +42,20 @@ public class AesGcmCryptoService implements CryptoService {
 
     @Override
     public String decrypt(Payload payload, String password)
-            throws GeneralSecurityException {
-
-        SecretKey key = keyDerivation.deriveKey(password.toCharArray(), payload.getSalt());
-
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-        cipher.init(Cipher.DECRYPT_MODE, key,
-                new GCMParameterSpec(TAG_BITS, payload.getIv()));
-
-        byte[] plainBytes = cipher.doFinal(payload.getCipherText());
-        return new String(plainBytes, StandardCharsets.UTF_8);
-    }
-
-    public static void main(String[] args) throws Exception {
-        AesGcmCryptoService svc = new AesGcmCryptoService(new KeyDerivation());
-
-        Payload p = svc.encrypt("Hi", "s3cret");
-        System.out.println("Version       : " + p.getVersion());
-        System.out.println("Salt length   : " + p.getSalt().length);
-        System.out.println("IV length     : " + p.getIv().length);
-        System.out.println("Cipher length : " + p.getCipherText().length);
-        System.out.println("Decrypted     : " + svc.decrypt(p, "s3cret"));
+            throws TamperedDataException {
 
         try {
-            svc.decrypt(p, "wrong");
+            SecretKey key = KeyDerivation.deriveKey(password, payload.getSalt());
+
+            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            cipher.init(Cipher.DECRYPT_MODE, key,
+                    new GCMParameterSpec(TAG_BITS, payload.getIv()));
+
+            byte[] plainBytes = cipher.doFinal(payload.getCipherText());
+            return new String(plainBytes, StandardCharsets.UTF_8);
+
         } catch (GeneralSecurityException e) {
-            System.out.println("Wrong password -> " + e.getClass().getSimpleName());
+            throw new TamperedDataException("Wrong password or data was tampered with");
         }
     }
 }
