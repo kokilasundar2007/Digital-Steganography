@@ -7,38 +7,35 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.Optional;
+import java.util.Objects;
 
+/** Users table access. (M4) Implements the interface defined by M5. */
 public class UserDaoImpl implements UserDao {
 
+    private static final String COLUMNS = "id, username, full_name, email, password_hash";
+
+    private final DbConnection db;
+
+    /** ServiceFactory passes the shared DbConnection. */
+    public UserDaoImpl(DbConnection db) {
+        this.db = Objects.requireNonNull(db, "db");
+    }
+
+    /** Returns the user, or null when the username is unknown. */
     @Override
-    public User create(User user) {
-        String sql = "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)";
-        try (Connection c = DbConnection.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, user.getUsername());
-            ps.setString(2, user.getEmail());
-            ps.setString(3, user.getPasswordHash());
-            ps.executeUpdate();
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) user.setId(keys.getInt(1));
+    public User findByUsername(String username) {
+        String sql = "SELECT " + COLUMNS + " FROM users WHERE username = ?";
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? map(rs) : null;
             }
-            return user;
         } catch (SQLException e) {
-            throw new IllegalStateException("Could not create user", e);
+            throw new IllegalStateException("User lookup failed", e);
         }
-    }
-
-    @Override
-    public Optional<User> findByUsername(String username) {
-        return findOne("SELECT * FROM users WHERE username = ?", username);
-    }
-
-    @Override
-    public Optional<User> findById(int id) {
-        return findOne("SELECT * FROM users WHERE id = ?", id);
     }
 
     @Override
@@ -51,22 +48,39 @@ public class UserDaoImpl implements UserDao {
         return exists("SELECT 1 FROM users WHERE email = ?", email);
     }
 
-    // ---- helpers ----
-
-    private Optional<User> findOne(String sql, Object param) {
-        try (Connection c = DbConnection.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setObject(1, param);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? Optional.of(map(rs)) : Optional.empty();
+    /**
+     * Inserts the user and returns the new id.
+     *
+     * @throws IllegalStateException with an SQLIntegrityConstraintViolationException as cause when
+     *         the username or email already exists (AuthServiceImpl turns that into an AuthException)
+     */
+    @Override
+    public int create(User user) {
+        String sql = "INSERT INTO users (username, full_name, email, password_hash) VALUES (?, ?, ?, ?)";
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, user.getUsername());
+            ps.setString(2, user.getFullName());
+            ps.setString(3, user.getEmail());
+            ps.setString(4, user.getPasswordHash());
+            ps.executeUpdate();
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (keys.next()) {
+                    return keys.getInt(1);
+                }
             }
+            throw new IllegalStateException("Could not read the new user id");
+        } catch (SQLIntegrityConstraintViolationException e) {
+            throw new IllegalStateException("Username or email already exists", e);
         } catch (SQLException e) {
-            throw new IllegalStateException("User lookup failed", e);
+            throw new IllegalStateException("Could not create user", e);
         }
     }
 
+    // ---- helpers ----
+
     private boolean exists(String sql, String param) {
-        try (Connection c = DbConnection.getConnection();
+        try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, param);
             try (ResultSet rs = ps.executeQuery()) {
@@ -77,14 +91,12 @@ public class UserDaoImpl implements UserDao {
         }
     }
 
-    private User map(ResultSet rs) throws SQLException {
-        User u = new User();
-        u.setId(rs.getInt("id"));
-        u.setUsername(rs.getString("username"));
-        u.setEmail(rs.getString("email"));
-        u.setPasswordHash(rs.getString("password_hash"));
-        Timestamp ts = rs.getTimestamp("created_at");
-        if (ts != null) u.setCreatedAt(ts.toLocalDateTime());
-        return u;
+    private static User map(ResultSet rs) throws SQLException {
+        return new User(
+                rs.getInt("id"),
+                rs.getString("username"),
+                rs.getString("full_name"),
+                rs.getString("email"),
+                rs.getString("password_hash"));
     }
 }
