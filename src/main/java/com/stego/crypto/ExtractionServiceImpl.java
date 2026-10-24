@@ -6,10 +6,9 @@ import com.stego.common.PayloadCodec;
 import com.stego.common.StegoEngine;
 import com.stego.common.exception.TamperedDataException;
 import com.stego.common.model.Payload;
+import com.stego.stego.ImageServiceImpl;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import javax.imageio.ImageIO;
 
 /**
  * Extraction pipeline. (M3)
@@ -17,14 +16,15 @@ import javax.imageio.ImageIO;
  */
 public class ExtractionServiceImpl implements ExtractionService {
 
-    private final StegoEngine engine;
-    private final PayloadCodec codec;
     private final CryptoService crypto;
+    private final PayloadCodec codec;
+    private final StegoEngine engine;
 
-    public ExtractionServiceImpl(StegoEngine engine, PayloadCodec codec, CryptoService crypto) {
-        this.engine = engine;
-        this.codec = codec;
+    // The parameter order must match ServiceFactory, which calls (crypto, codec, engine).
+    public ExtractionServiceImpl(CryptoService crypto, PayloadCodec codec, StegoEngine engine) {
         this.crypto = crypto;
+        this.codec = codec;
+        this.engine = engine;
     }
 
     @Override
@@ -35,15 +35,9 @@ public class ExtractionServiceImpl implements ExtractionService {
         if (password == null || password.isEmpty()) {
             throw new IllegalArgumentException("Password is required");
         }
-        BufferedImage bufferedImage = ImageIO.read(
-    new ByteArrayInputStream(image)
-);
 
-if (bufferedImage == null) {
-    throw new IllegalArgumentException("Invalid image format");
-}
-
-
+        // M2's reader checks the real format, the file size and the pixel count before decoding.
+        BufferedImage bufferedImage = ImageServiceImpl.readValidated(image);
 
         byte[] framed;
         try {
@@ -52,7 +46,7 @@ if (bufferedImage == null) {
             throw new TamperedDataException("No valid hidden data found in this image.");
         }
 
-        Payload payload = codec.decode(framed);              
-        return crypto.decrypt(payload,password);
+        Payload payload = codec.decode(framed);                      // 2. bytes -> Payload
+        return crypto.decrypt(payload, password);                    // 3. Payload -> text
     }
 }
